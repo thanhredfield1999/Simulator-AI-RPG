@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NanoRealm: Pixel Warfare</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #050510;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* ── Top Bar ── */
+    #top-bar {
+      width: 100%;
+      background: #0a0a14;
+      border-bottom: 1px solid #1a1a30;
+      padding: 8px 20px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    #top-bar .title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #a0c0ff;
+      letter-spacing: 1px;
+    }
+
+    #top-bar .stat {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #a0a0b0;
+    }
+
+    #top-bar .stat .val {
+      color: #e0e0f0;
+      font-weight: 600;
+      min-width: 30px;
+    }
+
+    #top-bar .phase {
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .phase-day    { background: #3a2a00; color: #ffcc44; border: 1px solid #5a4000; }
+    .phase-night  { background: #1a1030; color: #8877ff; border: 1px solid #3a2060; }
+    .phase-dusk   { background: #2a1a00; color: #ff9944; border: 1px solid #5a3a00; }
+    .phase-dawn   { background: #1a1a30; color: #99aaff; border: 1px solid #2a2a50; }
+
+    /* ── Main Area ── */
+    #main-area {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    /* ── Canvas ── */
+    #canvas-wrap {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: #050510;
+    }
+
+    #game-canvas {
+      position: absolute;
+      top: 0; left: 0;
+      cursor: grab;
+    }
+    #game-canvas:active { cursor: grabbing; }
+
+    /* ── Right Panel ── */
+    #right-panel {
+      width: 200px;
+      background: #0a0a14;
+      border-left: 1px solid #1a1a30;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .panel-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #5060a0;
+      border-bottom: 1px solid #1a1a30;
+      padding-bottom: 6px;
+      margin-bottom: 4px;
+    }
+
+    .faction-block {
+      background: #08080f;
+      border: 1px solid #151525;
+      border-radius: 6px;
+      padding: 10px;
+    }
+
+    .faction-name {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .faction-name.human   { color: #22ff55; }
+    .faction-name.monster { color: #ff2222; }
+
+    .faction-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #9090a0;
+      padding: 2px 0;
+    }
+    .faction-row .dot {
+      width: 8px; height: 8px;
+      border-radius: 1px;
+      display: inline-block;
+      margin-right: 6px;
+    }
+    .faction-row .count {
+      color: #d0d0e0;
+      font-weight: 600;
+    }
+
+    .kill-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #606080;
+      padding: 2px 0;
+      margin-top: 4px;
+    }
+    .kill-row .val { color: #9090c0; }
+
+    /* ── Controls ── */
+    #controls {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .ctrl-btn {
+      background: #10101e;
+      border: 1px solid #202040;
+      color: #8080a0;
+      font-size: 12px;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+      flex: 1;
+      min-width: 60px;
+    }
+    .ctrl-btn:hover {
+      background: #1a1a30;
+      border-color: #303060;
+      color: #b0b0d0;
+    }
+    .ctrl-btn.active {
+      background: #1a2040;
+      border-color: #4060c0;
+      color: #7090ff;
+    }
+
+    /* ── Legend ── */
+    #legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: auto;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      color: #606080;
+    }
+    .legend-dot {
+      width: 10px; height: 10px;
+      border-radius: 1px;
+    }
+
+    /* ── Bottom ── */
+    #bottom-bar {
+      width: 100%;
+      background: #0a0a14;
+      border-top: 1px solid #1a1a30;
+      padding: 5px 20px;
+      display: flex;
+      gap: 20px;
+      font-size: 11px;
+      color: #404060;
+      flex-shrink: 0;
+    }
+    #bottom-bar kbd {
+      background: #151525;
+      border: 1px solid #252540;
+      border-radius: 3px;
+      padding: 1px 5px;
+      font-size: 10px;
+      color: #606080;
+    }
+
+    /* ── Loading ── */
+    #loading {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: #404060;
+      font-size: 14px;
+    }
+    #loading.hidden { display: none; }
+
+    /* ── Night overlay ── */
+    #night-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      background: rgba(10, 10, 40, 0);
+      transition: background 0.5s;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div id="top-bar">
+  <span class="title">NanoRealm</span>
+  <span class="stat">Day <span class="val" id="day-num">1</span></span>
+  <span class="stat" id="time-display">00:00</span>
+  <span class="phase phase-day" id="phase-badge">Day</span>
+  <span class="stat">Speed <span class="val" id="speed-val">1x</span></span>
+  <span class="stat">FPS <span class="val" id="fps-val">--</span></span>
+</div>
+
+<!-- Main -->
+<div id="main-area">
+
+  <!-- Canvas -->
+  <div id="canvas-wrap">
+    <canvas id="game-canvas"></canvas>
+    <div id="night-overlay"></div>
+    <div id="loading">
+      Loading world...
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div id="right-panel">
+
+    <div class="panel-title">Factions</div>
+
+    <div class="faction-block">
+      <div class="faction-name human">Humans</div>
+      <div id="human-rows"></div>
+      <div class="kill-row">
+        <span>Monsters slain</span>
+        <span class="val" id="mkills">0</span>
+      </div>
+    </div>
+
+    <div class="faction-block" style="margin-top:4px;">
+      <div class="faction-name monster">Monsters</div>
+      <div id="monster-rows"></div>
+      <div class="kill-row">
+        <span>Humans slain</span>
+        <span class="val" id="hkills">0</span>
+      </div>
+    </div>
+
+    <div class="panel-title" style="margin-top:8px;">Controls</div>
+    <div id="controls">
+      <button class="ctrl-btn" id="btn-pause">Pause</button>
+      <button class="ctrl-btn active" id="btn-1x" onclick="setSpeed(1)">1x</button>
+      <button class="ctrl-btn" id="btn-2x" onclick="setSpeed(2)">2x</button>
+      <button class="ctrl-btn" id="btn-5x" onclick="setSpeed(5)">5x</button>
+    </div>
+
+    <div class="panel-title" style="margin-top:8px;">Legend</div>
+    <div id="legend"></div>
+
+  </div>
+</div>
+
+<!-- Bottom -->
+<div id="bottom-bar">
+  <span><kbd>Drag</kbd> Pan</span>
+  <span><kbd>Scroll</kbd> Zoom</span>
+  <span><kbd>G</kbd> Grid</span>
+  <span><kbd>M</kbd> Minimap</span>
+  <span><kbd>P</kbd> Pause</span>
+</div>
+
+<script>
+// ─── Config ───────────────────────────────────────────────────────────────────
+const WORLD_W = 100, WORLD_H = 100;
+const TILE_SIZE = 8;
+
+const COLORS = {
+  human:   "#22FF55",
+  monster: "#FF2222",
+  animal:  "#FFFF33",
+  tree:    "#008C00",
+  rock:    "#808080",
+  wall:    "#8B5A2B",
+  door:    "#FFA500",
+  torch:   "#FF8C00",
+  spawner: "#4B0082",
+  lair:    "#641E1E",
+  ground:  "#323232",
+  grass:   "#1E501E",
+  water:   "#1E5AC8",
+};
+
+const LEGEND = [
+  ["human",   "Human"],
+  ["monster", "Monster"],
+  ["animal",  "Animal"],
+  ["tree",    "Tree"],
+  ["rock",    "Rock"],
+  ["wall",    "Wall"],
+  ["torch",   "Torch"],
+  ["spawner", "Spawner"],
+];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let entities = [];
+let terrain  = {};
+let state    = {};
+let camera   = { x: 50, y: 50, zoom: 1.5, dragging: false, lastX: 0, lastY: 0 };
+let showGrid = false;
+let showMinimap = true;
+let frameCount = 0, lastFpsTime = 0, fps = 0;
+
+// ─── Canvas Setup ─────────────────────────────────────────────────────────────
+const canvas = document.getElementById("game-canvas");
+const ctx    = canvas.getContext("2d");
+const wrap   = document.getElementById("canvas-wrap");
+
+function resizeCanvas() {
+  canvas.width  = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+  render();
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
+// ─── Camera ───────────────────────────────────────────────────────────────────
+function screenToWorld(sx, sy) {
+  const px = (sx - canvas.width  / 2) / camera.zoom + camera.x;
+  const py = (sy - canvas.height / 2) / camera.zoom + camera.y;
+  return [px, py];
+}
+
+canvas.addEventListener("mousedown", e => {
+  camera.dragging = true;
+  camera.lastX = e.clientX;
+  camera.lastY = e.clientY;
+});
+canvas.addEventListener("mousemove", e => {
+  if (!camera.dragging) return;
+  const dx = (e.clientX - camera.lastX) / camera.zoom;
+  const dy = (e.clientY - camera.lastY) / camera.zoom;
+  camera.x -= dx;
+  camera.y -= dy;
+  camera.x = Math.max(0, Math.min(WORLD_W, camera.x));
+  camera.y = Math.max(0, Math.min(WORLD_H, camera.y));
+  camera.lastX = e.clientX;
+  camera.lastY = e.clientY;
+});
+canvas.addEventListener("mouseup",   () => camera.dragging = false);
+canvas.addEventListener("mouseleave", () => camera.dragging = false);
+canvas.addEventListener("wheel", e => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? -0.15 : 0.15;
+  camera.zoom = Math.max(0.3, Math.min(4, camera.zoom + delta));
+}, { passive: false });
+
+// ─── Keyboard ─────────────────────────────────────────────────────────────────
+document.addEventListener("keydown", e => {
+  if (e.key === "g" || e.key === "G") showGrid = !showGrid;
+  if (e.key === "m" || e.key === "M") showMinimap = !showMinimap;
+  if (e.key === "p" || e.key === "P") togglePause();
+  if (e.key === "w" || e.key === "ArrowUp")    camera.y -= 3 / camera.zoom;
+  if (e.key === "s" || e.key === "ArrowDown")  camera.y += 3 / camera.zoom;
+  if (e.key === "a" || e.key === "ArrowLeft")  camera.x -= 3 / camera.zoom;
+  if (e.key === "d" || e.key === "ArrowRight") camera.x += 3 / camera.zoom;
+  camera.x = Math.max(0, Math.min(WORLD_W, camera.x));
+  camera.y = Math.max(0, Math.min(WORLD_H, camera.y));
+});
+
+// ─── API ──────────────────────────────────────────────────────────────────────
+async function fetchData() {
+  const [s, e, t] = await Promise.all([
+    fetch("/api/state").then(r => r.json()),
+    fetch("/api/entities").then(r => r.json()),
+    fetch("/api/terrain").then(r => r.json()),
+  ]);
+  state    = s;
+  entities = e;
+  terrain  = t;
+}
+
+async function sendControl(action, extra = {}) {
+  await fetch("/api/control", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action, ...extra }),
+  });
+}
+
+function togglePause() { sendControl("pause"); }
+function setSpeed(s) {
+  sendControl("speed", { speed: s });
+  document.querySelectorAll(".ctrl-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById(`btn-${s}x`)?.classList.add("active");
+  document.getElementById("speed-val").textContent = s + "x";
+}
+
+document.getElementById("btn-pause").addEventListener("click", togglePause);
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function render() {
+  const W = canvas.width, H = canvas.height;
+  const brightness = state.brightness || 0.7;
+
+  // Background
+  ctx.fillStyle = "#050510";
+  ctx.fillRect(0, 0, W, H);
+
+  // Visible tile range
+  const halfW = (W / 2) / camera.zoom;
+  const halfH = (H / 2) / camera.zoom;
+  const minTX = Math.max(0, Math.floor(camera.x - halfW) - 1);
+  const maxTX = Math.min(WORLD_W, Math.ceil(camera.x + halfW) + 1);
+  const minTY = Math.max(0, Math.floor(camera.y - halfH) - 1);
+  const maxTY = Math.min(WORLD_H, Math.ceil(camera.y + halfH) + 1);
+
+  const px = camera.zoom * TILE_SIZE;
+
+  // Draw terrain
+  for (let tx = minTX; tx < maxTX; tx++) {
+    for (let ty = minTY; ty < maxTY; ty++) {
+      const sx = Math.round((tx - camera.x) * px + W / 2);
+      const sy = Math.round((ty - camera.y) * px + H / 2);
+      const key = `${tx},${ty}`;
+      const type = terrain[key] || "grass";
+      let color = COLORS[type] || COLORS.ground;
+      // Apply brightness
+      const br = parseInt(color.slice(1, 3), 16);
+      const bg = parseInt(color.slice(3, 5), 16);
+      const bb = parseInt(color.slice(5, 7), 16);
+      const r  = Math.round(br * brightness);
+      const g  = Math.round(bg * brightness);
+      const b  = Math.round(bb * brightness);
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(sx, sy, px + 0.5, px + 0.5);
+    }
+  }
+
+  // Grid
+  if (showGrid) {
+    ctx.strokeStyle = "#1a1a28";
+    ctx.lineWidth = 0.5;
+    for (let tx = minTX; tx <= maxTX; tx++) {
+      const sx = Math.round((tx - camera.x) * px + W / 2);
+      ctx.beginPath();
+      ctx.moveTo(sx, 0);
+      ctx.lineTo(sx, H);
+      ctx.stroke();
+    }
+    for (let ty = minTY; ty <= maxTY; ty++) {
+      const sy = Math.round((ty - camera.y) * px + H / 2);
+      ctx.beginPath();
+      ctx.moveTo(0, sy);
+      ctx.lineTo(W, sy);
+      ctx.stroke();
+    }
+  }
+
+  // Draw entities (sorted by y for depth)
+  const sorted = [...entities].sort((a, b) => a.y - b.y);
+  for (const e of sorted) {
+    let sx = Math.round((e.x - camera.x) * px + W / 2);
+    let sy = Math.round((e.y - camera.y) * px + H / 2);
+    if (sx < -px || sx > W + px || sy < -px || sy > H + px) continue;
+
+    let color = COLORS[e.type] || "#ffffff";
+    // Monster walls darker
+    if (e.type === "wall" && e.team === "monster") color = "#961E1E";
+
+    ctx.fillStyle = color;
+    ctx.fillRect(sx, sy, px + 0.5, px + 0.5);
+
+    // Combat flash
+    if (e.in_combat) {
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      ctx.fillRect(sx, sy, px + 0.5, px + 0.5);
+    }
+
+    // HP bar
+    if (e.hp < e.max_hp) {
+      const bw = px;
+      const bh = 2;
+      ctx.fillStyle = "#202030";
+      ctx.fillRect(sx, sy - 3, bw, bh);
+      const fill = (e.hp / e.max_hp) * bw;
+      ctx.fillStyle = e.team === "human" ? "#22ff55" : "#ff2222";
+      ctx.fillRect(sx, sy - 3, fill, bh);
+    }
+  }
+
+  // Night overlay
+  const na = state.night_alpha || 0;
+  if (na > 0) {
+    ctx.fillStyle = `rgba(10,10,40,${na / 255})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // Torch lights
+  for (const e of entities) {
+    if (e.type !== "torch") continue;
+    let sx = (e.x - camera.x) * px + W / 2;
+    let sy = (e.y - camera.y) * px + H / 2;
+    const radius = 50 * camera.zoom;
+    const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, radius);
+    grad.addColorStop(0, "rgba(255,140,0,0.25)");
+    grad.addColorStop(1, "rgba(255,140,0,0)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(sx - radius, sy - radius, radius * 2, radius * 2);
+  }
+
+  // Minimap
+  if (showMinimap) {
+    drawMinimap();
+  }
+
+  // Update UI
+  updateUI();
+}
+
+function drawMinimap() {
+  const mmW = 130, mmH = 130;
+  const mmX = canvas.width - mmW - 10;
+  const mmY = 10;
+  const sx = mmW / WORLD_W, sy = mmH / WORLD_H;
+
+  ctx.fillStyle = "rgba(5,5,16,0.85)";
+  ctx.fillRect(mmX - 2, mmY - 2, mmW + 4, mmH + 4);
+  ctx.strokeStyle = "#202040";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(mmX - 2, mmY - 2, mmW + 4, mmH + 4);
+
+  // Terrain on minimap
+  for (const [key, type] of Object.entries(terrain)) {
+    const [tx, ty] = key.split(",").map(Number);
+    const mx = Math.floor(tx * sx), my = Math.floor(ty * sy);
+    ctx.fillStyle = COLORS[type] || COLORS.ground;
+    ctx.fillRect(mmX + mx, mmY + my, Math.ceil(sx), Math.ceil(sy));
+  }
+
+  // Entities
+  for (const e of entities) {
+    const mx = Math.round(e.x * sx);
+    const my = Math.round(e.y * sy);
+    ctx.fillStyle = COLORS[e.type] || "#fff";
+    ctx.fillRect(mmX + mx, mmY + my, 2, 2);
+  }
+
+  // Camera viewport
+  const vpW = (canvas.width  / 2 / camera.zoom) * sx / WORLD_W * WORLD_W;
+  const vpH = (canvas.height / 2 / camera.zoom) * sy / WORLD_H * WORLD_H;
+  const cx  = (camera.x * sx);
+  const cy  = (camera.y * sy);
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(mmX + cx - vpW / 2, mmY + cy - vpH / 2, vpW, vpH);
+
+  // Label
+  ctx.fillStyle = "#404060";
+  ctx.font = "10px monospace";
+  ctx.fillText("MAP", mmX + 3, mmY + 11);
+}
+
+function updateUI() {
+  document.getElementById("day-num").textContent = state.day || 1;
+  document.getElementById("time-display").textContent = state.time || "00:00";
+  document.getElementById("fps-val").textContent = fps;
+
+  const phase = (state.phase || "Day").toLowerCase();
+  const badge = document.getElementById("phase-badge");
+  badge.className = "phase phase-" + phase;
+  badge.textContent = state.phase || "Day";
+
+  // Faction counts
+  const h = state.humans   || {};
+  const m = state.monsters || {};
+
+  function renderRows(data, containerId) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = "";
+    for (const [type, count] of Object.entries(data)) {
+      if (count === 0) continue;
+      const color = COLORS[type] || "#888";
+      el.innerHTML += `
+        <div class="faction-row">
+          <span><span class="dot" style="background:${color}"></span>${type}</span>
+          <span class="count">${count}</span>
+        </div>`;
+    }
+  }
+
+  renderRows(h, "human-rows");
+  renderRows(m, "monster-rows");
+
+  document.getElementById("mkills").textContent = state.monsters_killed || 0;
+  document.getElementById("hkills").textContent = state.humans_killed   || 0;
+
+  // Night overlay CSS
+  const na = state.night_alpha || 0;
+  const overlay = document.getElementById("night-overlay");
+  overlay.style.background = `rgba(10,10,40,${na / 255})`;
+}
+
+// ─── Legend ───────────────────────────────────────────────────────────────────
+(function buildLegend() {
+  const el = document.getElementById("legend");
+  for (const [type, name] of LEGEND) {
+    el.innerHTML += `
+      <div class="legend-item">
+        <span class="legend-dot" style="background:${COLORS[type]}"></span>
+        ${name}
+      </div>`;
+  }
+})();
+
+// ─── Game Loop ────────────────────────────────────────────────────────────────
+async function gameLoop(ts) {
+  // FPS
+  frameCount++;
+  if (ts - lastFpsTime >= 1000) {
+    fps = frameCount;
+    frameCount = 0;
+    lastFpsTime = ts;
+  }
+
+  await fetchData();
+  render();
+  requestAnimationFrame(gameLoop);
+}
+
+requestAnimationFrame(ts => {
+  lastFpsTime = ts;
+  document.getElementById("loading").classList.add("hidden");
+  requestAnimationFrame(gameLoop);
+});
+</script>
+</body>
+</html>
