@@ -18,7 +18,6 @@ from colors import (
     HUMAN_COLORS, MONSTER_COLORS,
     GROUND, GRASS,
 )
-from datetime import datetime
 
 
 def spawn_initial_world(em: EntityManager) -> None:
@@ -84,7 +83,7 @@ def spawn_initial_world(em: EntityManager) -> None:
         monster.home_y = monster_zone_y + random.uniform(-3, 3)
 
     # Spawn monster spawner
-    spawner = em.respawn_entity(EntityType.SPAWNER, monster_zone_x, monster_zone_y, team="monster")
+    em.respawn_entity(EntityType.SPAWNER, monster_zone_x, monster_zone_y, team="monster")
 
     # Spawn monster lair walls
     for angle in [0, math.pi / 2, math.pi, 3 * math.pi / 2, math.pi / 4, 3 * math.pi / 4]:
@@ -95,10 +94,26 @@ def spawn_initial_world(em: EntityManager) -> None:
 
 
 def main():
-    import math
+    pygame.init()
 
     # Init core
     core = Core(1280, 720)
+
+    # Set icon
+    icon = pygame.Surface((32, 32))
+    icon.fill((10, 10, 30))
+    # Draw a tiny pixel art scene on icon
+    # Green human pixel
+    icon.set_at((8, 16), (34, 255, 85))
+    # Red monster pixel
+    icon.set_at((24, 16), (255, 34, 34))
+    # Brown wall
+    icon.set_at((14, 18), (139, 90, 43))
+    icon.set_at((18, 18), (139, 90, 43))
+    # Tree
+    icon.set_at((6, 22), (0, 140, 0))
+    icon.set_at((26, 22), (75, 0, 130))
+    pygame.display.set_icon(icon)
 
     # Init world
     world = WorldState(WORLD_WIDTH, WORLD_HEIGHT)
@@ -115,7 +130,6 @@ def main():
     renderer = SpriteRenderer(core.screen, core.camera.zoom * 8)
 
     # Track last night state to detect night onset
-    last_was_night = False
     spawn_timer = 0.0
 
     # Main loop
@@ -254,7 +268,6 @@ def main():
                 pygame.draw.line(core.screen, (30, 30, 40), (sx1, sy), (sx2, sy))
 
         # Draw entities
-        drawn: dict = {}
         for entity in list(em.entities.values()):
             if not entity.is_alive():
                 continue
