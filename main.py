@@ -3,6 +3,7 @@ NanoRealm: Pixel Warfare
 Main entry point. Each pixel has a mind of its own.
 """
 
+import math
 import random
 import pygame
 
@@ -13,11 +14,7 @@ from combat import CombatSystem
 from ai import update_all_ai
 from ui import UI
 from sprites import SpriteRenderer
-from colors import (
-    HUMAN_COLORS, MONSTER_COLORS,
-    GROUND, GRASS,
-)
-from datetime import datetime
+from colors import HUMAN_COLORS, MONSTER_COLORS
 
 
 def spawn_initial_world(em: EntityManager) -> None:
